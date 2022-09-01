@@ -1,0 +1,10 @@
+This is FUSB, the first version of the Fixed USB Manager.
+FUSB is written from scratch to make FUSB cleaner, safer, more
+robust, more powerful, and more portable.
+
+See the file NEWS for a description of recent changes to FUSB.
+
+See the file INSTALL for instructions on how to build and install the
+FUSB data and program files.
+
+Copyright (c) 2022 Davide Usberti aka UsboKirishima & his contributors
