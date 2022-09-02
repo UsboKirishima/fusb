@@ -4,11 +4,11 @@ CC=gcc
 INCLUDES=
 OBJS= MAIN.C
 OUTDIR=bin/fusb
-FILE=
+FILE=-h
 BINPATH=/usr/bin
 
 out.o:${OBJS}
-	 ${CC} ${OBJS} -o ${OUTDIR} && ./${OUTDIR} ${FILE}
+	 ${CC} -w ${OBJS} -o ${OUTDIR} && ./${OUTDIR} ${FILE}
 
 
 install:
