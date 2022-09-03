@@ -70,7 +70,7 @@
 #define COLOR_ORANGE    "\033[33m"
 #define COLOR_WHITE     "\033[37m"
 #define COLOR_RESET     "\033[0m"
-#define QUEUE_OK        0
+#define QUEUE_OK         0
 #define QUEUE_EMPTY     -1
 #define QUEUE_FULL      -2
 #ifdef _WIN32
@@ -89,13 +89,7 @@ struct statvfs file_stats;
 struct utsname name;
 struct sysinfo my_sysinfo;
 
-typedef struct
-{
-    size_t offset;
-    size_t size;
-    size_t alloc_size;
-    char *data;
-} Queue;
+
 
 
 ////////////////////////////////////////////////////
@@ -294,7 +288,7 @@ main(int argc, char **argv) {
         break;
     }
 
-    printf("\n%s\n", get_os());
+    
     parse_options(argc, argv);
   }
 

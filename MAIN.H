@@ -68,6 +68,9 @@
 #define COLOR_ORANGE    "\033[33m"
 #define COLOR_WHITE     "\033[37m"
 #define COLOR_RESET     "\033[0m"
+#define QUEUE_OK         0
+#define QUEUE_EMPTY     -1
+#define QUEUE_FULL      -2
 #ifdef _WIN32
 #define OS 1
 #elif _WIN64
@@ -81,11 +84,24 @@
 struct statvfs;
 struct utsname;
 struct sysinfo;
+typedef struct
+{
+    size_t offset;
+    size_t size;
+    size_t alloc_size;
+    char *data;
+} Queue;
 static void HELP();
 static void MOUNT(char *disk, char *name);
 static void LIST(void);
 static void NOTIFY(char description[]);
 void ERROR(char *body);
 static void parse_options(int argc, char **argv);
+Queue *queue_with_size(size_t size);
+int requeue(Queue *q);
+int enqueue(Queue *q, char val);
+int dequeue(Queue *q, char *out);
+void destroy_queue(Queue *q);
+void read_after_sequence(FILE *fp, const char *seq, char *buffer, size_t buffer_size);
 static char *get_os();
 static bool isSystemValid(char *os);
