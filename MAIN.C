@@ -34,6 +34,9 @@
 #include <sys/utsname.h>
 #include <sys/sysinfo.h>
 #include <sys/statvfs.h>
+#include <sys/mount.h>
+#include <linux/loop.h>
+#include <fcntl.h>
 #include <assert.h>
 #include "VERSION.H"
 #include "MAIN.H"
@@ -102,9 +105,36 @@ HELP() {
   printf("%s", helpCommands);
 }
 
-static void
-MOUNT(char *disk, char *name) {
+bool 
+isMounted(char *disk) {
+  int disk_file = open(disk, O_RDWR);
 
+  if(disk_file < -1) {
+    return false;
+  } else {
+    return true;
+  }
+  close(disk_file);
+}
+
+bool 
+isMountTypeValid(char *type) {
+  if(TOLOWER(type) != "vfat") return false;
+  else return true;
+}
+
+static void
+MOUNT(char *disk, char *type) {
+  if(TOLOWER(type) == "") type = "vfat";
+  if(isMountTypeValid(type) == false) return ERROR("Invalid Mount Type.");
+  if(isMounted(disk) == true) return ERROR("Invalid Disk Provided.");
+  else {
+    if((mount(disk, "/mnt/sd", type, MS_NOATIME, NULL))) {
+      return printf("\n%s[SUCCESS] %s%s", COLOR_GREEN, COLOR_RESET, "USB Mounted Succefully.");
+    } else {
+      return ERROR("USBO not mounted, errors founds.");
+    }
+  }  
 }
 
 static void
@@ -134,11 +164,16 @@ parse_options(int argc, char **argv) {
       exit(0);
     }
 
+    int
+    arg_mount_disk = i + 1,
+    arg_mount_type = i + 2;
    
     switch(arg[i]) {
       case 'h': 
         HELP();
       break;
+      case 'm':
+        MOUNT(argv[arg_mount_disk], argv[arg_mount_type]);
       default: 
         ERROR("Invalid Option.");
         HELP();
@@ -254,8 +289,18 @@ static char
 }
 
 static bool 
-isSystemValid(char *os) {
+isSystemValid(char *disk_name) {
+  if(get_os() == "") return false;
+  else return true;
 
+  int disk_file = open(disk_name, O_RDWR);
+
+  if(disk_file < -1) {
+    return false;
+  } else {
+    return true;
+  }
+  close(disk_file);
 }
 
 ////////////////////////////////////////////////////
@@ -264,8 +309,6 @@ isSystemValid(char *os) {
 
 int 
 main(int argc, char **argv) {
-
-
 
   if(LINUX == true) {
     switch(OS) {
@@ -288,8 +331,6 @@ main(int argc, char **argv) {
         break;
     }
 
-    
     parse_options(argc, argv);
   }
-
 }
