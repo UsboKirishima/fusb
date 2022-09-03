@@ -126,6 +126,7 @@ parse_options(int argc, char **argv) {
       break;
       default: 
         ERROR("Invalid Option.");
+        HELP();
       break;
     }
   }

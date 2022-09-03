@@ -3,7 +3,7 @@ SHELL=/bin/sh
 CC=gcc
 INCLUDES=
 OBJS= MAIN.C
-OUTDIR=bin/fusb
+OUTDIR=BIN/fusb
 FILE=-h
 BINPATH=/usr/bin
 
