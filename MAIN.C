@@ -101,7 +101,7 @@ struct sysinfo my_sysinfo;
 
 static void 
 HELP() {
-  unsigned char *helpCommands;
+  unsigned char *helpCommands = "  - USAGE\n\n    fusb [-options] [arguments]\n\n  -EXAMPLES\n\n    fusb -h\n    fusb -m /dev/sda1 vfat\n    fusb -h -l\n";
   printf("%s", helpCommands);
 }
 
