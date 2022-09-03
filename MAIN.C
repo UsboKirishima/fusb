@@ -31,7 +31,12 @@
 #include <stdalign.h>
 #include <regex.h>
 #include <stdbool.h>
+#include <sys/utsname.h>
+#include <sys/sysinfo.h>
+#include <sys/statvfs.h>
+#include <assert.h>
 #include "VERSION.H"
+#include "MAIN.H"
 #define DEV             true
 #define LINUX           true
 #define NAME            "FUSB "
@@ -65,6 +70,9 @@
 #define COLOR_ORANGE    "\033[33m"
 #define COLOR_WHITE     "\033[37m"
 #define COLOR_RESET     "\033[0m"
+#define QUEUE_OK        0
+#define QUEUE_EMPTY     -1
+#define QUEUE_FULL      -2
 #ifdef _WIN32
 #define OS 1
 #elif _WIN64
@@ -75,6 +83,19 @@
 #define OS 0
 #endif
 
+
+
+struct statvfs file_stats;
+struct utsname name;
+struct sysinfo my_sysinfo;
+
+typedef struct
+{
+    size_t offset;
+    size_t size;
+    size_t alloc_size;
+    char *data;
+} Queue;
 
 
 ////////////////////////////////////////////////////
@@ -132,6 +153,117 @@ parse_options(int argc, char **argv) {
   }
 }
 
+Queue 
+*queue_with_size(size_t size) {
+  Queue *q = malloc(sizeof(Queue));
+  size_t byte_size = sizeof(char) * size;
+  q->data = malloc(byte_size);
+  memset(q->data, 0, byte_size);
+  q->alloc_size = size;
+  q->size = 0;
+  q->offset = 0;
+  return q;
+}
+
+int requeue(Queue *q) {
+  if(q->size == q->alloc_size)
+      return -1;
+  
+  size_t used_byte_size = sizeof(char) * q->size;
+  char buf[q->size];
+  char *relevant_data_start = q->data + q->offset;
+  memcpy(buf, relevant_data_start, used_byte_size);
+  memcpy(q->data, buf, used_byte_size);
+  q->offset = 0;
+  return 0;
+}
+
+int 
+enqueue(Queue *q, char val) {
+  if(q->size >= q->alloc_size)
+      return QUEUE_FULL;
+  size_t write_index = q->size + q->offset;
+  if(write_index >= q->alloc_size) {
+      requeue(q); 
+      write_index = q->size;
+  }
+  q->data[write_index] = val;
+  q->size++;
+  return QUEUE_OK;
+}
+
+int 
+dequeue(Queue *q, char *out) {
+  if(q->size < 1)
+      return QUEUE_EMPTY;
+  if(q->offset >= q->alloc_size)
+      return QUEUE_EMPTY;
+  char front = q->data[q->offset];
+  q->offset++; 
+  q->size--;   
+  *out = front;
+  
+  return QUEUE_OK;
+}
+
+void
+destroy_queue(Queue *q) {
+  free(q->data);
+  free(q);
+}
+
+void 
+read_after_sequence(FILE *fp, const char *seq, char *buffer, size_t buffer_size) {
+  size_t seq_size = strlen(seq);
+  Queue *q = queue_with_size(3 * seq_size);
+  int ch, error;
+  char elem;
+  while((ch = fgetc(fp)) != EOF) {
+    if(q->size < seq_size) {
+        enqueue(q, ch);
+        continue;
+    }
+    assert(q->size == seq_size);   
+    if(strncmp((char *) q->data + q->offset, seq, seq_size) == 0)
+        break;
+    
+    error = dequeue(q, &elem);
+    assert(error != QUEUE_EMPTY);  
+    error = enqueue(q, ch);
+    assert(error != QUEUE_FULL); 
+  }
+  destroy_queue(q);
+  for(size_t i = 0; i < buffer_size; ++i) {
+      if((ch = fgetc(fp)) == EOF)
+          break;
+      buffer[i] = ch;
+  }
+}
+
+static char 
+*get_os() {
+  char format[100];
+  uname(&name);
+  FILE *fp = fopen("/etc/os-release", "r");
+  char buf[64];
+  char *os_name = buf, *end;
+  read_after_sequence(fp, "PRETTY_NAME", buf, 64);
+  fclose(fp);
+  if(os_name[0] == '"' || os_name[0] == '\'')
+      ++os_name;
+  
+  end = strchr(os_name, '\n');
+  *end = 0;
+  if((end = strchr(os_name, '"'))) *end = 0;
+  else if((end = strchr(os_name, '\''))) *end = 0;
+  return os_name;
+}
+
+static bool 
+isSystemValid(char *os) {
+
+}
+
 ////////////////////////////////////////////////////
 //                 MAIN                           //
 ////////////////////////////////////////////////////
@@ -162,6 +294,7 @@ main(int argc, char **argv) {
         break;
     }
 
+    printf("\n%s\n", get_os());
     parse_options(argc, argv);
   }
 
